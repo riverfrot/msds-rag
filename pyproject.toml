@@ -1,0 +1,28 @@
+[project]
+name = "msds-rag"
+version = "0.1.0"
+description = "MSDS generation via RAG with Naver Cloud / Upstage providers"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27.0",
+    "qdrant-client>=1.9.0",
+    "click>=8.1.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+server = ["fastapi>=0.110.0", "uvicorn>=0.29.0"]
+dev = ["pytest>=8.0.0", "pytest-asyncio>=0.23.0"]
+
+[project.scripts]
+msds-cli = "cli.msds_cli:gen"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["core", "cli", "ingest"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
