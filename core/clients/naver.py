@@ -45,15 +45,33 @@ class NaverClovaClient(BaseModelClient):
         documents: list[str],
         top_n: int = 5,
     ) -> list[dict]:
+        # CLOVA's "reranker" actually does RAG-style citation: it ranks the
+        # input docs and returns only the cited subset (no scalar scores).
+        # Schema docs: https://api.ncloud-docs.com/docs/clovastudio-reranker
+        # We adapt back to the {index, score} contract Retriever expects by
+        # using the original list position as `index` and descending rank as
+        # `score`.
         r = await self._client.post(
             f"{self.BASE}/v1/api-tools/reranker",
-            json={"query": query, "documents": documents, "topN": top_n},
+            json={
+                "query": query,
+                "documents": [
+                    {"id": str(i), "doc": d} for i, d in enumerate(documents)
+                ],
+            },
         )
         r.raise_for_status()
-        return [
-            {"index": d["index"], "score": d["score"]}
-            for d in r.json()["result"]["citedDocuments"]
-        ]
+        cited = r.json()["result"].get("citedDocuments") or []
+        out: list[dict] = []
+        for rank, c in enumerate(cited[:top_n]):
+            try:
+                idx = int(c["id"])
+            except (KeyError, ValueError, TypeError):
+                continue
+            # Monotonically decreasing pseudo-score; downstream only uses
+            # ordering and a numeric placeholder.
+            out.append({"index": idx, "score": 1.0 - rank * 0.01})
+        return out
 
     async def chat(self, system: str, user: str, **kwargs) -> str:
         # Tuned model id can be passed via kwargs["model"].

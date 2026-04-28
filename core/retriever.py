@@ -31,12 +31,15 @@ class Retriever:
         # 1) Embed the query. Upstage uses a query-specific model; CLOVA ignores role.
         qvec = await model_call(self.provider, "embed", text=query, role="query")
 
-        # 2) ANN recall.
-        hits = await self.qdrant.search(
+        # 2) ANN recall. qdrant-client>=1.10 deprecated .search() in favor of
+        # .query_points(); the wrapper returns a QueryResponse whose .points
+        # holds the ScoredPoint list we used to get directly.
+        resp = await self.qdrant.query_points(
             collection_name=self.collection,
-            query_vector=qvec,
+            query=qvec,
             limit=top_k_first,
         )
+        hits = resp.points
         if not hits:
             return []
 
