@@ -250,17 +250,6 @@ pytest -m "not integration"
 | `tests/test_upstage_client_integration.py` | Upstage에 **실제 API 단건 호출** (rerank는 로컬 검증) | 라이브, `-m "integration and upstage"` |
 | `tests/test_cli.py` | CLI 인자 파싱·기본/명시 출력 경로·`--no-save`·`--quiet`·헤더 포맷 | `CliRunner` + 파이프라인 스텁 |
 
-### 4.5 현재 결과
-
-```
-$ pytest -q
-.............................................................................  [100%]
-77 passed in ~6s
-```
-
-77건 = 단위/모킹 테스트 70건 + 라이브 통합 7건 (Naver 3 + Upstage 4).
-
----
 
 ## 5. 실행 결과 샘플
 
@@ -339,7 +328,4 @@ $ pytest -q
 
 ### 5.3 확인 포인트
 
-- **양식 보존**: 두 출력 모두 가–카 항목이 누락 없이 채워짐.
-- **반(反)환각 동작**: 검색 근거에 없는 수치는 둘 다 일관되게 "제품별 시험 결과 참조" / "자료 없음" 으로 대체.
-- **양식 완성도 차이**: Solar Pro 2 가 성분별 분리 표기 + 데이터 출처(ECHA/HSDB)를 더 적극적으로 인용. 다만 더 길어지므로 토큰 비용은 더 큼.
 - **저장 산출물**: 두 실행 모두 `output/` 아래에 self-describing 헤더가 붙은 마크다운 파일로 보존됨 — 실제 실행 결과 파일은 `output/HW-Cleaner_200_section09_naver_*.md` 와 `output/HW-Cleaner_200_section09_upstage_*.md` 에서 확인 가능.

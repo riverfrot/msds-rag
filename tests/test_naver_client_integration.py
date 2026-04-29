@@ -12,7 +12,7 @@ import pytest
 
 from core.clients.naver import NaverClovaClient
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.naver]
 
 
 @pytest.fixture

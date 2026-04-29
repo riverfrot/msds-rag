@@ -120,8 +120,9 @@ async def test_rerank_handles_empty_citations(client: NaverClovaClient):
 
 @respx.mock
 async def test_chat_posts_messages_and_returns_content(client: NaverClovaClient):
+    # Default model is HCX-007 (reasoning); it expects `maxCompletionTokens`.
     route = respx.post(
-        "https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005"
+        f"https://clovastudio.stream.ntruss.com/v3/chat-completions/{NaverClovaClient.CHAT_MODEL_DEFAULT}"
     ).mock(
         return_value=httpx.Response(
             200, json={"result": {"message": {"content": "C2H6O"}}}
@@ -140,10 +141,63 @@ async def test_chat_posts_messages_and_returns_content(client: NaverClovaClient)
         {"role": "system", "content": "간결하게 답해."},
         {"role": "user", "content": "에탄올 화학식?"},
     ]
-    assert body["maxTokens"] == 32
+    # HCX-007 renamed maxTokens → maxCompletionTokens.
+    assert body["maxCompletionTokens"] == 32
+    assert "maxTokens" not in body
     # Defaults that the pipeline relies on:
     assert body["temperature"] == 0.3
     assert body["topP"] == 0.8
+
+    await client.aclose()
+
+
+@respx.mock
+async def test_chat_legacy_hcx005_keeps_maxTokens_field(client: NaverClovaClient):
+    """Caller can still pin model='HCX-005' for the older non-reasoning
+    endpoint, which uses the legacy `maxTokens` field name."""
+    respx.post(
+        "https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005"
+    ).mock(
+        return_value=httpx.Response(
+            200, json={"result": {"message": {"content": "ok"}}}
+        )
+    )
+
+    await client.chat(system="s", user="u", model="HCX-005", max_tokens=128)
+    import json as _json
+    body = _json.loads(respx.calls.last.request.content)
+    assert body["maxTokens"] == 128
+    assert "maxCompletionTokens" not in body
+
+    await client.aclose()
+
+
+@respx.mock
+async def test_chat_falls_back_to_thinking_when_content_empty(
+    client: NaverClovaClient,
+):
+    """HCX-007 can return empty `content` when the budget was consumed by
+    reasoning. We surface `thinkingContent` so the caller sees *something*
+    instead of an empty string."""
+    respx.post(
+        f"https://clovastudio.stream.ntruss.com/v3/chat-completions/"
+        f"{NaverClovaClient.CHAT_MODEL_DEFAULT}"
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "result": {
+                    "message": {
+                        "content": "",
+                        "thinkingContent": "에탄올의 화학식을 떠올려보면…",
+                    }
+                }
+            },
+        )
+    )
+
+    out = await client.chat(system="s", user="u")
+    assert out.startswith("에탄올의 화학식")
 
     await client.aclose()
 

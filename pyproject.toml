@@ -28,5 +28,7 @@ packages = ["core", "cli", "ingest"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "integration: hits live CLOVA / Qdrant; needs CLOVA_API_KEY (and a running Qdrant for ingest tests)",
+    "integration: hits live provider APIs / Qdrant; auto-skipped when keys are missing",
+    "naver: integration test that requires CLOVA_API_KEY",
+    "upstage: integration test that requires UPSTAGE_API_KEY",
 ]
